@@ -138,7 +138,7 @@
                     "method": "POST",
                     "url": "{{https_endpoint_id_portal}}",
                     "requestBody": {
-                        "account_id": {{zendesk_account_id}},
+                        "account_id": "{{zendesk_account_id}}",
                         "details": "$.fetched_user",
                         "type": "user.CustomRoleChanged"
                     }

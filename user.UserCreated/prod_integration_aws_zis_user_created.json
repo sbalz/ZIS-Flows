@@ -303,21 +303,30 @@
                     "method": "POST",
                     "url": "{{https_endpoint_id_portal}}",
                     "requestBody": {
-                        "account_id": {{zendesk_account_id}},
+                        "account_id": "{{zendesk_account_id}}",
                         "details": "$.fetched_user",
                         "type": "user.UserCreated"
                     }
                 }
             }
         },
-        "action.PostWebhook": {
+        "action.PostError": {
             "type": "ZIS::Action::Http",
             "properties": {
-                "name": "post_webhook",
+                "name": "post_error",
                 "definition": {
                     "method": "POST",
-                    "url": "{{https_endpoint_zis_testing}}",
-                    "requestBody": "$.payload"
+                    "url": "{{https_endpoint_error_handling}}",
+                    "requestBody": {
+                        "error": {
+                            "platform": "Zendesk Integration Service",
+                            "instance": "PRODUCTION",
+                            "flowName": "AWS ZIS UserTagsChanged",
+                            "flowStatus": "failed",
+                            "timeStamp": "",
+                            "flowLink": ""
+                        }
+                    }
                 }
             }
         }

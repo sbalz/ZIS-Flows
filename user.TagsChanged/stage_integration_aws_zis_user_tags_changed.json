@@ -1,6 +1,6 @@
 {
     "zis_template_version": "2019-10-14",
-    "name": "AWS ZIS UserTagsChanged",
+    "name": "AWS ZIS user.TagsChanged",
     "description": "Listens to ZIS event 'user.TagsChanged' and starts an Amazon States Language workflow with conditional branches, data transformations, and API calls.",
     "resources": {
         "JobSpec": {
@@ -326,7 +326,7 @@
                         "error": {
                             "platform": "Zendesk Integration Service",
                             "instance": "SANDBOX",
-                            "flowName": "AWS ZIS UserTagsChanged",
+                            "flowName": "AWS ZIS user.TagsChanged",
                             "flowStatus": "failed",
                             "timeStamp": "",
                             "flowLink": ""
