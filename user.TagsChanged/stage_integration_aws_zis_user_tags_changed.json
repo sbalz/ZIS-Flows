@@ -1,6 +1,6 @@
 {
     "zis_template_version": "2019-10-14",
-    "name": "AWS ZIS user.TagsChanged",
+    "name": "AWS ZIS UserTagsChanged",
     "description": "Listens to ZIS event 'user.TagsChanged' and starts an Amazon States Language workflow with conditional branches, data transformations, and API calls.",
     "resources": {
         "JobSpec": {
@@ -87,7 +87,7 @@
                             "Parameters": {
                                 "user_email.$": "$.input.user_event.user.email"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEnd",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -103,7 +103,7 @@
                             "Parameters": {
                                 "user_email.$": "$.input.user_event.user.email"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEnd",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -152,7 +152,7 @@
                                     "Next": "wait.FiveSeconds4"
                                 }
                             ],
-                            "Default": "NoExecutionTag"
+                            "Default": "succeed.NoExecutionTag"
                         },
                         "wait.FiveSeconds3": {
                             "Type": "Wait",
@@ -173,7 +173,7 @@
                             "Parameters": {
                                 "user_email.$": "$.input.user_event.user.email"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEnd",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -189,7 +189,7 @@
                             "Parameters": {
                                 "user_email.$": "$.input.user_event.user.email"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEnd",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -205,7 +205,7 @@
                             "Parameters": {
                                 "payload.$": "$"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEnd",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -218,19 +218,19 @@
                             "Type": "Action",
                             "ActionName": "zis:{{user_tags_changed}}:action:post_error",
                             "Comment": "Post Error to Monitor.",
-                            "Next": "HandleError"
+                            "Next": "fail.HandleError"
                         },
-                        "NoExecutionTag": {
+                        "succeed.NoExecutionTag": {
                             "Type": "Succeed",
                             "Comment": "Log",
                             "Message": "✅ - User ID: {{$.user_id}}; No relevant tags added or removed. No action taken."
                         },
-                        "FlowEnd": {
+                        "succeed.FlowEnd": {
                             "Type": "Succeed",
                             "Comment": "Log",
                             "Message": "✅ - User ID: {{$.user_id}}; Flow '{{$.csat_field_key}}' completed successfully."
                         },
-                        "HandleError": {
+                        "fail.HandleError": {
                             "Type": "Fail",
                             "Error": "ActionExecutionFailed",
                             "Cause": "❌ - User ID: {{$.user_id}}; Error in action!"

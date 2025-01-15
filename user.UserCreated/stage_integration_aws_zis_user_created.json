@@ -290,12 +290,12 @@
                         },
                         "action.PostWebhook": {
                             "Type": "Action",
-                            "ActionName": "zis:{{user_tags_changed}}:action:post_webhook",
+                            "ActionName": "zis:{{user_created}}:action:post_webhook",
                             "Comment": "Send full ZIS payload to the webhook for analysis/debugging.",
                             "Parameters": {
                                 "payload.$": "$"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEndCheck",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -306,9 +306,9 @@
                         },
                         "action.PostError": {
                             "Type": "Action",
-                            "ActionName": "zis:{{user_tags_changed}}:action:post_error",
+                            "ActionName": "zis:{{user_created}}:action:post_error",
                             "Comment": "Post Error to Monitor.",
-                            "Next": "HandleError"
+                            "Next": "fail.HandleError"
                         },
                         "succeed.FlowEndCheck": {
                             "Type": "Succeed",
@@ -320,7 +320,7 @@
                             "Comment": "Log",
                             "Message": "✅ - User ID: {{$.user_id}}; User is '{{$.input.user_event.user.role}}'. unchecked: 'is_light_agent'"
                         },
-                        "HandleError": {
+                        "fail.HandleError": {
                             "Type": "Fail",
                             "Error": "ActionExecutionFailed",
                             "Cause": "❌ - User ID: {{$.user_id}}; Error in action!"

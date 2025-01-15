@@ -156,12 +156,12 @@
                         },
                         "action.PostWebhook": {
                             "Type": "Action",
-                            "ActionName": "zis:{{user_tags_changed}}:action:post_webhook",
+                            "ActionName": "zis:{{user_custom_role_changed}}:action:post_webhook",
                             "Comment": "Send full ZIS payload to the webhook for analysis/debugging.",
                             "Parameters": {
                                 "payload.$": "$"
                             },
-                            "Next": "FlowEnd",
+                            "Next": "succeed.FlowEndCheck",
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
@@ -172,9 +172,9 @@
                         },
                         "action.PostError": {
                             "Type": "Action",
-                            "ActionName": "zis:{{user_tags_changed}}:action:post_error",
+                            "ActionName": "zis:{{user_custom_role_changed}}:action:post_error",
                             "Comment": "Post Error to Monitor.",
-                            "Next": "HandleError"
+                            "Next": "fail.HandleError"
                         },
                         "succeed.FlowEndCheck": {
                             "Type": "Succeed",
@@ -186,7 +186,7 @@
                             "Comment": "Log",
                             "Message": "✅ - User ID: {{$.user_id}}; User's role has changed. unchecked: 'is_light_agent' - Role Details: [{{$.input.user_event.user.role}}]({{$.input.user_event.current}})"
                         },
-                        "HandleError": {
+                        "fail.HandleError": {
                             "Type": "Fail",
                             "Error": "ActionExecutionFailed",
                             "Cause": "❌ - User ID: {{$.user_id}}; Error in action!"
