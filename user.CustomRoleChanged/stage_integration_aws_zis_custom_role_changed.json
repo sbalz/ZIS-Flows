@@ -45,7 +45,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -74,7 +74,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -87,7 +87,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -105,7 +105,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -133,7 +133,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -149,7 +149,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -165,7 +165,7 @@
                             "Catch": [
                                 {
                                     "ErrorEquals": ["States.ALL"],
-                                    "ResultPath": "$.errorDetails",
+                                    "ResultPath": "$.error_Details",
                                     "Next": "action.PostError"
                                 }
                             ]
@@ -189,7 +189,7 @@
                         "fail.HandleError": {
                             "Type": "Fail",
                             "Error": "ActionExecutionFailed",
-                            "Cause": "❌ - User ID: {{$.user_id}}; Error in action!"
+                            "Cause": "❌ - User ID: {{$.user_id}}; Error in action: {{$.error_Details}}"
                         }
                     }
                 }
