@@ -17,8 +17,15 @@
             "properties": {
                 "name": "UserCustomRoleChangedFlow",
                 "definition": {
-                    "StartAt": "wait.fiveSeconds1",
+                    "StartAt": "pass.GlobalVariable",
                     "States": {
+                        "pass.GlobalVariable": {
+                            "Type": "Pass",
+                            "Result": {
+                                "user_id.$": "$.input.user_event.user.id"
+                            },
+                            "Next": "wait.fiveSeconds1"
+                        },
                         "wait.fiveSeconds1": {
                             "Type": "Wait",
                             "Seconds": 5,
@@ -34,7 +41,14 @@
                                 "data.$": "$"
                             },
                             "ResultPath": "$.RoleIsAgent",
-                            "Next": "choice.CheckRoleAgent"
+                            "Next": "choice.CheckRoleAgent",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckRoleAgent": {
                             "Type": "Choice",
@@ -56,13 +70,27 @@
                                 "user_id.$": "$.input.user_event.user.id"
                             },
                             "ResultPath": "$.fetched_user",
-                            "Next": "action.PostFetchedUser"
+                            "Next": "action.PostFetchedUser",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.PostFetchedUser": {
                             "Type": "Action",
                             "ActionName": "zis:{{user_custom_role_changed}}:action:post_fetched_user",
                             "Comment": "Post 'fetched_user' to Power Automate Flow.",
-                            "Next": "action.FilterCustomRole"
+                            "Next": "action.FilterCustomRole",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.FilterCustomRole": {
                             "Type": "Action",
@@ -73,7 +101,14 @@
                                 "data.$": "$"
                             },
                             "ResultPath": "$.CustomRoleIsLightAgent",
-                            "Next": "choice.CheckCustomRole"
+                            "Next": "choice.CheckCustomRole",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckCustomRole": {
                             "Type": "Choice",
@@ -94,12 +129,14 @@
                             "Parameters": {
                                 "user_id.$": "$.input.user_event.user.id"
                             },
-                            "Next": "succeed.FlowEndCheck"
-                        },
-                        "succeed.FlowEndCheck": {
-                            "Type": "Succeed",
-                            "Comment": "Log",
-                            "Message": "✅ - User ID: {{$.input.user_event.user.id}}; User's role has changed. checked: 'is_light_agent' - Role Details: [{{$.input.user_event.user.role}}]({{$.input.user_event.current}})"
+                            "Next": "succeed.FlowEndCheck",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.UpdateUserUncheck": {
                             "Type": "Action",
@@ -108,12 +145,35 @@
                             "Parameters": {
                                 "user_id.$": "$.input.user_event.user.id"
                             },
-                            "Next": "succeed.FlowEndUncheck"
+                            "Next": "succeed.FlowEndUncheck",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
+                        },
+                        "action.PostError": {
+                            "Type": "Action",
+                            "ActionName": "zis:{{user_custom_role_changed}}:action:post_error",
+                            "Comment": "Post Error to Monitor.",
+                            "Next": "fail.HandleError"
+                        },
+                        "succeed.FlowEndCheck": {
+                            "Type": "Succeed",
+                            "Comment": "Log",
+                            "Message": "✅ - User ID: {{$.user_id}}; User's role has changed. checked: 'is_light_agent' - Role Details: [{{$.input.user_event.user.role}}]({{$.input.user_event.current}})"
                         },
                         "succeed.FlowEndUncheck": {
                             "Type": "Succeed",
                             "Comment": "Log",
-                            "Message": "✅ - User ID: {{$.input.user_event.user.id}}; User's role has changed. unchecked: 'is_light_agent' - Role Details: [{{$.input.user_event.user.role}}]({{$.input.user_event.current}})"
+                            "Message": "✅ - User ID: {{$.user_id}}; User's role has changed. unchecked: 'is_light_agent' - Role Details: [{{$.input.user_event.user.role}}]({{$.input.user_event.current}})"
+                        },
+                        "fail.HandleError": {
+                            "Type": "Fail",
+                            "Error": "ActionExecutionFailed",
+                            "Cause": "❌ - User ID: {{$.user_id}}; Error in action: {{$.error_Details}}"
                         }
                     }
                 }
@@ -181,14 +241,23 @@
                 }
             }
         },
-        "action.PostWebhook": {
+        "action.PostError": {
             "type": "ZIS::Action::Http",
             "properties": {
-                "name": "post_webhook",
+                "name": "post_error",
                 "definition": {
                     "method": "POST",
-                    "url": "{{https_endpoint_zis_testing}}",
-                    "requestBody": "$.payload"
+                    "url": "{{https_endpoint_error_handling}}",
+                    "requestBody": {
+                        "error": {
+                            "platform": "Zendesk Integration Service",
+                            "instance": "PRODUCTION",
+                            "flowName": "AWS ZIS user.CustomRoleChanged",
+                            "flowStatus": "failed",
+                            "timeStamp": "",
+                            "flowLink": ""
+                        }
+                    }
                 }
             }
         }

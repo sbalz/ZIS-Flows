@@ -17,8 +17,15 @@
             "properties": {
                 "name": "UserCreatedFlow",
                 "definition": {
-                    "StartAt": "wait.five_seconds1",
+                    "StartAt": "pass.GlobalVariable",
                     "States": {
+                        "pass.GlobalVariable": {
+                            "Type": "Pass",
+                            "Result": {
+                                "user_id.$": "$.input.user_event.user.id"
+                            },
+                            "Next": "wait.five_seconds1"
+                        },
                         "wait.five_seconds1": {
                             "Type": "Wait",
                             "Seconds": 5,
@@ -34,7 +41,14 @@
                                 "data.$": "$"
                             },
                             "ResultPath": "$.RoleIsEndUser",
-                            "Next": "choice.CheckRoleEndUser"
+                            "Next": "choice.CheckRoleEndUser",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckRoleEndUser": {
                             "Type": "Choice",
@@ -56,7 +70,14 @@
                                 "user_id.$": "$.input.user_event.user.id"
                             },
                             "ResultPath": "$.fetched_user",
-                            "Next": "action.FilterOrganization"
+                            "Next": "action.FilterOrganization",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.FilterOrganization": {
                             "Type": "Action",
@@ -67,7 +88,14 @@
                                 "data.$": "$.fetched_user"
                             },
                             "ResultPath": "$.OrganizationResult",
-                            "Next": "choice.CheckOrganization"
+                            "Next": "choice.CheckOrganization",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckOrganization": {
                             "Type": "Choice",
@@ -90,7 +118,14 @@
                                 "data.$": "$.fetched_user"
                             },
                             "ResultPath": "$.EmailDomainResult",
-                            "Next": "choice.CheckEmailDomain"
+                            "Next": "choice.CheckEmailDomain",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckEmailDomain": {
                             "Type": "Choice",
@@ -111,7 +146,14 @@
                             "Parameters": {
                                 "user_id.$": "$.input.user_event.user.id"
                             },
-                            "Next": "succeed.RemovedOrganization"
+                            "Next": "succeed.RemovedOrganization",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "succeed.RemovedOrganization": {
                             "Type": "Succeed",
@@ -133,7 +175,14 @@
                                 "data.$": "$"
                             },
                             "ResultPath": "$.RoleIsAgent",
-                            "Next": "choice.CheckRoleAgent"
+                            "Next": "choice.CheckRoleAgent",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckRoleAgent": {
                             "Type": "Choice",
@@ -155,13 +204,27 @@
                                 "user_id.$": "$.input.user_event.user.id"
                             },
                             "ResultPath": "$.fetched_user",
-                            "Next": "action.PostFetchedUser"
+                            "Next": "action.PostFetchedUser",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.PostFetchedUser": {
                             "Type": "Action",
                             "ActionName": "zis:{{user_created}}:action:post_fetched_user",
                             "Comment": "Post 'fetched_user' to Power Automate Flow.",
-                            "Next": "action.FilterCustomRole"
+                            "Next": "action.FilterCustomRole",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.FilterCustomRole": {
                             "Type": "Action",
@@ -172,7 +235,14 @@
                                 "data.$": "$.fetched_user"
                             },
                             "ResultPath": "$.CustomRoleIsLightAgent",
-                            "Next": "choice.CheckCustomRole"
+                            "Next": "choice.CheckCustomRole",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "choice.CheckCustomRole": {
                             "Type": "Choice",
@@ -193,12 +263,14 @@
                             "Parameters": {
                                 "user_id.$": "$.input.user_event.user.id"
                             },
-                            "Next": "succeed.FlowEndCheck"
-                        },
-                        "succeed.FlowEndCheck": {
-                            "Type": "Succeed",
-                            "Comment": "Log",
-                            "Message": "✅ - User ID: {{$.input.user_event.user.id}}; User is 'light agent'. checked: 'is_light_agent'"
+                            "Next": "succeed.FlowEndCheck",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
                         },
                         "action.UpdateUserUncheck": {
                             "Type": "Action",
@@ -207,12 +279,35 @@
                             "Parameters": {
                                 "user_id.$": "$.input.user_event.user.id"
                             },
-                            "Next": "succeed.FlowEndUncheck"
+                            "Next": "succeed.FlowEndUncheck",
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "ResultPath": "$.error_Details",
+                                    "Next": "action.PostError"
+                                }
+                            ]
+                        },
+                        "action.PostError": {
+                            "Type": "Action",
+                            "ActionName": "zis:{{user_created}}:action:post_error",
+                            "Comment": "Post Error to Monitor.",
+                            "Next": "fail.HandleError"
+                        },
+                        "succeed.FlowEndCheck": {
+                            "Type": "Succeed",
+                            "Comment": "Log",
+                            "Message": "✅ - User ID: {{$.user_id}}; User is 'light agent'. checked: 'is_light_agent'"
                         },
                         "succeed.FlowEndUncheck": {
                             "Type": "Succeed",
                             "Comment": "Log",
-                            "Message": "✅ - User ID: {{$.input.user_event.user.id}}; User is '{{$.input.user_event.user.role}}'. unchecked: 'is_light_agent'"
+                            "Message": "✅ - User ID: {{$.user_id}}; User is '{{$.input.user_event.user.role}}'. unchecked: 'is_light_agent'"
+                        },
+                        "fail.HandleError": {
+                            "Type": "Fail",
+                            "Error": "ActionExecutionFailed",
+                            "Cause": "❌ - User ID: {{$.user_id}}; Error in action: {{$.error_Details}}"
                         }
                     }
                 }
@@ -321,7 +416,7 @@
                         "error": {
                             "platform": "Zendesk Integration Service",
                             "instance": "PRODUCTION",
-                            "flowName": "AWS ZIS UserTagsChanged",
+                            "flowName": "AWS ZIS user.UserCreated",
                             "flowStatus": "failed",
                             "timeStamp": "",
                             "flowLink": ""
