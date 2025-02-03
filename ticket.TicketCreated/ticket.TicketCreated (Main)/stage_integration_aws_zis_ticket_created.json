@@ -473,7 +473,7 @@
                 "Parameters":{
                   "payload.$":"$"
                 },
-                "Next":"succeed.FlowEndCheck",
+                "Next":"succeed.FlowEnd",
                 "Catch":[
                   {
                     "ErrorEquals":[
