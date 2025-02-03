@@ -257,7 +257,7 @@
             "requestBody":{
               "error":{
                 "platform":"Zendesk Integration Service",
-                "instance":"SANDBOX",
+                "instance":"PRODUCTION",
                 "flowName":"AWS ZIS organization.CustomFieldChanged",
                 "flowStatus":"failed",
                 "timeStamp":"",
