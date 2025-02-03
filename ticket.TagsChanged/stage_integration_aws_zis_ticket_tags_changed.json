@@ -272,7 +272,7 @@
               },
               "action.PostWebhook":{
                 "Type":"Action",
-                "ActionName":"zis:{{ticket_created}}:action:post_webhook",
+                "ActionName":"zis:{{ticket_tags_changed}}:action:post_webhook",
                 "Comment":"Send full ZIS payload to the webhook for analysis/debugging.",
                 "Parameters":{
                   "payload.$":"$"
@@ -297,12 +297,12 @@
               "succeed.NoExecutionTag":{
                 "Type":"Succeed",
                 "Comment":"Log",
-                "Message":"✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; No 'Execution Tag'"
+                "Message":"✅ - Ticket ID: {{$.ticket_id}}; No 'Execution Tag'"
               },
               "succeed.FlowEnd":{
                 "Type":"Succeed",
                 "Comment":"Log",
-                "Message":"✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Scenario: '{{$.ScenarioTagResult}}' was executed successfully."
+                "Message":"✅ - Ticket ID: {{$.ticket_id}}; Scenario: '{{$.ScenarioTagResult}}' was executed successfully."
               },
               "fail.HandleError":{
                 "Type":"Fail",

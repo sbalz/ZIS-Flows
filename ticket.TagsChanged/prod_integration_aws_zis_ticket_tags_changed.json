@@ -279,12 +279,12 @@
               "succeed.NoExecutionTag":{
                 "Type":"Succeed",
                 "Comment":"Log",
-                "Message":"✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; No 'Execution Tag'"
+                "Message":"✅ - Ticket ID: {{$.ticket_id}}; No 'Execution Tag'"
               },
               "succeed.FlowEnd":{
                 "Type":"Succeed",
                 "Comment":"Log",
-                "Message":"✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Scenario: '{{$.ScenarioTagResult}}' was executed successfully."
+                "Message":"✅ - Ticket ID: {{$.ticket_id}}; Scenario: '{{$.ScenarioTagResult}}' was executed successfully."
               },
               "fail.HandleError":{
                 "Type":"Fail",

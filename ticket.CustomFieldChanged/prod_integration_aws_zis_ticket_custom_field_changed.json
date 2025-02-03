@@ -1,487 +1,718 @@
 {
-  "zis_template_version": "2019-10-14",
-  "name": "AWS ZIS ticket.CustomFieldChanged",
-  "description": "Listens to ZIS event 'ticket.CustomFieldChanged' and starts an Amazon States Language workflow with conditional branches, data transformations, and API calls.",
-  "resources": {
-    "jobspec": {
-      "type": "ZIS::JobSpec",
-      "properties": {
-        "name": "TicketCustomFieldChangedJobSpec",
-        "event_source": "support",
-        "event_type": "ticket.CustomFieldChanged",
-        "flow_name": "zis:{{ticket_custom_field_changed}}:flow:TicketCustomFieldChangedFlow"
+  "zis_template_version":"2019-10-14",
+  "name":"AWS ZIS ticket.CustomFieldChanged",
+  "description":"Listens to ZIS event 'ticket.CustomFieldChanged' and starts an Amazon States Language workflow with conditional branches, data transformations, and API calls.",
+  "resources":{
+    "jobspec":{
+      "type":"ZIS::JobSpec",
+      "properties":{
+        "name":"TicketCustomFieldChangedJobSpec",
+        "event_source":"support",
+        "event_type":"ticket.CustomFieldChanged",
+        "flow_name":"zis:{{ticket_custom_field_changed}}:flow:TicketCustomFieldChangedFlow"
       }
     },
-    "Flow": {
-      "type": "ZIS::Flow",
-      "properties": {
-        "name": "TicketCustomFieldChangedFlow",
-        "definition": {
-          "StartAt": "action.CheckTicketFieldID",
-          "States": {
-            "action.CheckTicketFieldID": {
-              "Type": "Action",
-              "ActionName": "zis:common:transform:Jq",
-              "Comment": "Check if correct Ticket Field has changed.",
-              "Parameters": {
-                "expr": ".input.ticket_event.custom_field.id == {{process_macro_ticket_field_id}}",
-                "data.$": "$"
+    "Flow":{
+      "type":"ZIS::Flow",
+      "properties":{
+        "name":"TicketCustomFieldChangedFlow",
+        "definition":{
+          "StartAt":"pass.GlobalVariable",
+          "States":{
+            "pass.GlobalVariable":{
+              "Type":"Pass",
+              "Result":{
+                "ticket_id.$":"$.input.ticket_event.ticket.id"
               },
-              "ResultPath": "$.TicketFieldID",
-              "Next": "choice.CheckTicketFieldID"
+              "Next":"action.CheckTicketFieldID"
             },
-            "choice.CheckTicketFieldID": {
-              "Type": "Choice",
-              "Comment": "Decision to execute 'Process macro' job or to skip it.",
-              "Choices": [
+            "action.CheckTicketFieldID":{
+              "Type":"Action",
+              "ActionName":"zis:common:transform:Jq",
+              "Comment":"Check if correct Ticket Field has changed.",
+              "Parameters":{
+                "expr":".input.ticket_event.custom_field.id == {{process_macro_ticket_field_id}}",
+                "data.$":"$"
+              },
+              "ResultPath":"$.TicketFieldID",
+              "Next":"choice.CheckTicketFieldID",
+              "Catch":[
                 {
-                  "Variable": "$.TicketFieldID",
-                  "BooleanEquals": true,
-                  "Next": "action.CheckProcessMacro"
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
+            },
+            "choice.CheckTicketFieldID":{
+              "Type":"Choice",
+              "Comment":"Decision to execute 'Process macro' job or to skip it.",
+              "Choices":[
+                {
+                  "Variable":"$.TicketFieldID",
+                  "BooleanEquals":true,
+                  "Next":"action.CheckProcessMacro"
                 }
               ],
-              "Default": "succeed.DifferentTicketField"
+              "Default":"succeed.DifferentTicketField"
             },
-            "action.CheckProcessMacro": {
-              "Type": "Action",
-              "ActionName": "zis:common:transform:Jq",
-              "Comment": "Check if a Process macro or not.",
-              "Parameters": {
-                "expr": ".input.ticket_event.custom_field.id == {{process_macro_ticket_field_id}} and .input.ticket_event.current == true and (.input.ticket_event.ticket.tags | index(\"process_macro\"))",
-                "data.$": "$"
+            "action.CheckProcessMacro":{
+              "Type":"Action",
+              "ActionName":"zis:common:transform:Jq",
+              "Comment":"Check if a Process macro or not.",
+              "Parameters":{
+                "expr":".input.ticket_event.custom_field.id == {{process_macro_ticket_field_id}} and .input.ticket_event.current == true and (.input.ticket_event.ticket.tags | index(\"process_macro\"))",
+                "data.$":"$"
               },
-              "ResultPath": "$.ProcessMacro",
-              "Next": "choice.CheckProcessMacroResult"
-            },
-            "choice.CheckProcessMacroResult": {
-              "Type": "Choice",
-              "Comment": "Decision to execute 'Process macro' job or to skip it.",
-              "Choices": [
+              "ResultPath":"$.ProcessMacro",
+              "Next":"choice.CheckProcessMacroResult",
+              "Catch":[
                 {
-                  "Variable": "$.ProcessMacro",
-                  "BooleanEquals": true,
-                  "Next": "action.CheckEventType"
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
+            },
+            "choice.CheckProcessMacroResult":{
+              "Type":"Choice",
+              "Comment":"Decision to execute 'Process macro' job or to skip it.",
+              "Choices":[
+                {
+                  "Variable":"$.ProcessMacro",
+                  "BooleanEquals":true,
+                  "Next":"action.CheckEventType"
                 }
               ],
-              "Default": "succeed.NoProcessMacro"
+              "Default":"succeed.NoProcessMacro"
             },
-            "action.CheckEventType": {
-              "Type": "Action",
-              "ActionName": "zis:common:transform:Jq",
-              "Comment": "Check if a Event type is available.",
-              "Parameters": {
-                "expr": ".input.ticket_event.ticket.tags | any(. == \"tkt_pm_link_masterticket\" or . == \"tkt_pm_handover_l1\" or . == \"tkt_pm_handover_l2\" or . == \"tkt_pm_brandover_kununu\" or . == \"tkt_pm_brandover_xing\" or . == \"tkt_pm_handover_kbs\" or . == \"tkt_pm_handover_tech_int\")",
-                "data.$": "$"
+            "action.CheckEventType":{
+              "Type":"Action",
+              "ActionName":"zis:common:transform:Jq",
+              "Comment":"Check if a Event type is available.",
+              "Parameters":{
+                "expr":".input.ticket_event.ticket.tags | any(. == \"tkt_pm_link_masterticket\" or . == \"tkt_pm_handover_l1\" or . == \"tkt_pm_handover_l2\" or . == \"tkt_pm_brandover_kununu\" or . == \"tkt_pm_brandover_xing\" or . == \"tkt_pm_handover_kbs\" or . == \"tkt_pm_handover_tech_int\")",
+                "data.$":"$"
               },
-              "ResultPath": "$.EventType",
-              "Next": "choice.CheckEventTypeResult"
-            },
-            "choice.CheckEventTypeResult": {
-              "Type": "Choice",
-              "Comment": "Decision to execute 'Process macro' job or to skip it.",
-              "Choices": [
+              "ResultPath":"$.EventType",
+              "Next":"choice.CheckEventTypeResult",
+              "Catch":[
                 {
-                  "Variable": "$.EventType",
-                  "BooleanEquals": true,
-                  "Next": "action.CheckLinkProblemEventType"
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
+            },
+            "choice.CheckEventTypeResult":{
+              "Type":"Choice",
+              "Comment":"Decision to execute 'Process macro' job or to skip it.",
+              "Choices":[
+                {
+                  "Variable":"$.EventType",
+                  "BooleanEquals":true,
+                  "Next":"action.CheckLinkProblemEventType"
                 }
               ],
-              "Default": "fail.EventTypeMissing"
+              "Default":"fail.EventTypeMissing"
             },
-            "action.CheckLinkProblemEventType": {
-              "Type": "Action",
-              "ActionName": "zis:common:transform:Jq",
-              "Comment": "Check if a Event type is available.",
-              "Parameters": {
-                "expr": ".input.ticket_event.ticket.tags | any(. == \"tkt_pm_link_masterticket\")",
-                "data.$": "$"
+            "action.CheckLinkProblemEventType":{
+              "Type":"Action",
+              "ActionName":"zis:common:transform:Jq",
+              "Comment":"Check if a Event type is available.",
+              "Parameters":{
+                "expr":".input.ticket_event.ticket.tags | any(. == \"tkt_pm_link_masterticket\")",
+                "data.$":"$"
               },
-              "ResultPath": "$.EventType",
-              "Next": "choice.CheckLinkProblemEventTypeResult"
-            },
-            "choice.CheckLinkProblemEventTypeResult": {
-              "Type": "Choice",
-              "Comment": "Decision to execute 'Link Problem' job or to skip it.",
-              "Choices": [
+              "ResultPath":"$.EventType",
+              "Next":"choice.CheckLinkProblemEventTypeResult",
+              "Catch":[
                 {
-                  "Variable": "$.EventType",
-                  "BooleanEquals": true,
-                  "Next": "action.CheckTicketType"
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
+            },
+            "choice.CheckLinkProblemEventTypeResult":{
+              "Type":"Choice",
+              "Comment":"Decision to execute 'Link Problem' job or to skip it.",
+              "Choices":[
+                {
+                  "Variable":"$.EventType",
+                  "BooleanEquals":true,
+                  "Next":"action.CheckTicketType"
                 }
               ],
-              "Default": "wait.threeSeconds1"
+              "Default":"wait.threeSeconds1"
             },
-            "action.CheckTicketType": {
-              "Type": "Action",
-              "ActionName": "zis:common:transform:Jq",
-              "Comment": "Check if Ticket Type is 'incident'",
-              "Parameters": {
-                "expr": ".input.ticket_event.ticket.type == \"incident\"",
-                "data.$": "$"
+            "action.CheckTicketType":{
+              "Type":"Action",
+              "ActionName":"zis:common:transform:Jq",
+              "Comment":"Check if Ticket Type is 'incident'",
+              "Parameters":{
+                "expr":".input.ticket_event.ticket.type == \"incident\"",
+                "data.$":"$"
               },
-              "ResultPath": "$.TicketType",
-              "Next": "choice.CheckTicketTypeResult"
-            },
-            "choice.CheckTicketTypeResult": {
-              "Type": "Choice",
-              "Comment": "Decision to execute 'Incident' job or to skip it.",
-              "Choices": [
+              "ResultPath":"$.TicketType",
+              "Next":"choice.CheckTicketTypeResult",
+              "Catch":[
                 {
-                  "Variable": "$.TicketType",
-                  "BooleanEquals": true,
-                  "Next": "action.FetchTicket"
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
+            },
+            "choice.CheckTicketTypeResult":{
+              "Type":"Choice",
+              "Comment":"Decision to execute 'Incident' job or to skip it.",
+              "Choices":[
+                {
+                  "Variable":"$.TicketType",
+                  "BooleanEquals":true,
+                  "Next":"action.FetchTicket"
                 }
               ],
-              "Default": "succeed.DifferentTicketType"
+              "Default":"succeed.DifferentTicketType"
             },
-            "action.FetchTicket": {
-              "Type": "Action",
-              "ActionName": "zis:{{ticket_custom_field_changed}}:action:fetch_ticket",
-              "Comment": "Get this ticket data",
-              "Parameters": {
-                "ticket_id.$": "$.input.ticket_event.ticket.id"
+            "action.FetchTicket":{
+              "Type":"Action",
+              "ActionName":"zis:{{ticket_custom_field_changed}}:action:fetch_ticket",
+              "Comment":"Get this ticket data",
+              "Parameters":{
+                "ticket_id.$":"$.input.ticket_event.ticket.id"
               },
-              "ResultPath": "$.FetchedTicket",
-              "Next": "action.StoreProblemTicketID"
+              "ResultPath":"$.FetchedTicket",
+              "Next":"action.StoreProblemTicketID",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreProblemTicketID": {
-              "Type": "Action",
-              "Comment": "Get linked problem ticket",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedTicket",
-                "expr": ".ticket.problem_id"
+            "action.StoreProblemTicketID":{
+              "Type":"Action",
+              "Comment":"Get linked problem ticket",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedTicket",
+                "expr":".ticket.problem_id"
               },
-              "ResultPath": "$.FetchedProblemTicketID",
-              "Next": "action.FetchProblemTicket"
+              "ResultPath":"$.FetchedProblemTicketID",
+              "Next":"action.FetchProblemTicket",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.FetchProblemTicket": {
-              "Type": "Action",
-              "ActionName": "zis:{{ticket_custom_field_changed}}:action:fetch_problem_ticket",
-              "Comment": "Get problem ticket data",
-              "Parameters": {
-                "problem_ticket_id.$": "$.FetchedProblemTicketID"
+            "action.FetchProblemTicket":{
+              "Type":"Action",
+              "ActionName":"zis:{{ticket_custom_field_changed}}:action:fetch_problem_ticket",
+              "Comment":"Get problem ticket data",
+              "Parameters":{
+                "problem_ticket_id.$":"$.FetchedProblemTicketID"
               },
-              "ResultPath": "$.FetchedProblemTicket",
-              "Next": "action.StoreProblemTicketBrand"
+              "ResultPath":"$.FetchedProblemTicket",
+              "Next":"action.StoreProblemTicketBrand",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreProblemTicketBrand": {
-              "Type": "Action",
-              "Comment": "Get ID from Problem ticket brand",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.brand_id"
+            "action.StoreProblemTicketBrand":{
+              "Type":"Action",
+              "Comment":"Get ID from Problem ticket brand",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.brand_id"
               },
-              "ResultPath": "$.ProblemTicketBrand",
-              "Next": "action.StoreXingProduct"
+              "ResultPath":"$.ProblemTicketBrand",
+              "Next":"action.StoreXingProduct",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingProduct": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'Product'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{Product}}).value // empty | select(. != null)"
+            "action.StoreXingProduct":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'Product'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{Product}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingProduct",
-              "Next": "action.StoreXingOnlyfyOneJobs"
+              "ResultPath":"$.ProblemTicketXingProduct",
+              "Next":"action.StoreXingOnlyfyOneJobs",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingOnlyfyOneJobs": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'onlyfy one jobs'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{onlyfy one Jobs}}).value // empty | select(. != null)"
+            "action.StoreXingOnlyfyOneJobs":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'onlyfy one jobs'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{onlyfy one Jobs}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingOnlyfyOneJobs",
-              "Next": "action.StoreXingOnlyfyOneATS"
+              "ResultPath":"$.ProblemTicketXingOnlyfyOneJobs",
+              "Next":"action.StoreXingOnlyfyOneATS",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingOnlyfyOneATS": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'onlyfy one ATS'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{onlyfy one ATS}}).value // empty | select(. != null)"
+            "action.StoreXingOnlyfyOneATS":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'onlyfy one ATS'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{onlyfy one ATS}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingOnlyfyOneATS",
-              "Next": "action.StoreXingOTMOTP"
+              "ResultPath":"$.ProblemTicketXingOnlyfyOneATS",
+              "Next":"action.StoreXingOTMOTP",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingOTMOTP": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'OTM / OTP'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{OTM / OTP}}).value // empty | select(. != null)"
+            "action.StoreXingOTMOTP":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'OTM / OTP'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{OTM / OTP}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingOTMOTP",
-              "Next": "action.StoreXingEBP"
+              "ResultPath":"$.ProblemTicketXingOTMOTP",
+              "Next":"action.StoreXingEBP",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingEBP": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'EBP'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{EBP}}).value // empty | select(. != null)"
+            "action.StoreXingEBP":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'EBP'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{EBP}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingEBP",
-              "Next": "action.StoreXingCP"
+              "ResultPath":"$.ProblemTicketXingEBP",
+              "Next":"action.StoreXingCP",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingCP": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'CP'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{CP}}).value // empty | select(. != null)"
+            "action.StoreXingCP":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'CP'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{CP}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingCP",
-              "Next": "action.StoreXingStellenanzeigen"
+              "ResultPath":"$.ProblemTicketXingCP",
+              "Next":"action.StoreXingStellenanzeigen",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingStellenanzeigen": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'Stellenanzeigen'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{Stellenanzeigen}}).value // empty | select(. != null)"
+            "action.StoreXingStellenanzeigen":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'Stellenanzeigen'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{Stellenanzeigen}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingStellenanzeigen",
-              "Next": "action.StoreXingJobManager"
+              "ResultPath":"$.ProblemTicketXingStellenanzeigen",
+              "Next":"action.StoreXingJobManager",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreXingJobManager": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'JobManager'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{JobManager}}).value // empty | select(. != null)"
+            "action.StoreXingJobManager":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'JobManager'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{JobManager}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketXingJobManager",
-              "Next": "action.StoreKununuRequesterGroup"
+              "ResultPath":"$.ProblemTicketXingJobManager",
+              "Next":"action.StoreKununuRequesterGroup",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreKununuRequesterGroup": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'Requester Group'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{Requester Group}}).value // empty | select(. != null)"
+            "action.StoreKununuRequesterGroup":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'Requester Group'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{Requester Group}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketKununuRequesterGroup",
-              "Next": "action.StoreKununuRequestTypeUser"
+              "ResultPath":"$.ProblemTicketKununuRequesterGroup",
+              "Next":"action.StoreKununuRequestTypeUser",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreKununuRequestTypeUser": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'Type fo Request - User'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{Type of Request User}}).value // empty | select(. != null)"
+            "action.StoreKununuRequestTypeUser":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'Type fo Request - User'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{Type of Request User}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketKununuRequestTypeUser",
-              "Next": "action.StoreKununuRequestTypeEmployer"
+              "ResultPath":"$.ProblemTicketKununuRequestTypeUser",
+              "Next":"action.StoreKununuRequestTypeEmployer",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.StoreKununuRequestTypeEmployer": {
-              "Type": "Action",
-              "Comment": "Get value from ticket custom field 'Type of Request - Employer'",
-              "ActionName": "zis:common:transform:Jq",
-              "Parameters": {
-                "data.$": "$.FetchedProblemTicket",
-                "expr": ".ticket.custom_fields[] | select(.id == {{Type of Request Employer}}).value // empty | select(. != null)"
+            "action.StoreKununuRequestTypeEmployer":{
+              "Type":"Action",
+              "Comment":"Get value from ticket custom field 'Type of Request - Employer'",
+              "ActionName":"zis:common:transform:Jq",
+              "Parameters":{
+                "data.$":"$.FetchedProblemTicket",
+                "expr":".ticket.custom_fields[] | select(.id == {{Type of Request Employer}}).value // empty | select(. != null)"
               },
-              "ResultPath": "$.ProblemTicketKununuRequestTypeEmployer",
-              "Next": "action.BulkUpdateIncidentTicket"
+              "ResultPath":"$.ProblemTicketKununuRequestTypeEmployer",
+              "Next":"action.BulkUpdateIncidentTicket",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "action.BulkUpdateIncidentTicket": {
-              "Type": "Action",
-              "ActionName": "zis:{{ticket_custom_field_changed}}:action:bulk_update_incident_ticket",
-              "Comment": "Update Ticket with Problem ticket data.",
-              "Parameters": {
-                "ticket_id.$": "$.input.ticket_event.ticket.id",
-                "problem_ticket_id.$": "$.FetchedProblemTicketID",
-                "BrandProblemTicket.$": "$.ProblemTicketBrand",
-                "XingProduct.$": "$.ProblemTicketXingProduct",
-                "XingOnlyfyOneJobs.$": "$.ProblemTicketXingOnlyfyOneJobs",
-                "XingOnlyfyOneATS.$": "$.ProblemTicketXingOnlyfyOneATS",
-                "XingOTMOTP.$": "$.ProblemTicketXingOTMOTP",
-                "XingEBP.$": "$.ProblemTicketXingEBP",
-                "XingCP.$": "$.ProblemTicketXingCP",
-                "XingStellenanzeigen.$": "$.ProblemTicketXingStellenanzeigen",
-                "XingJobManager.$": "$.ProblemTicketXingJobManager",
-                "KununuRequesterGroup.$": "$.ProblemTicketKununuRequesterGroup",
-                "KununuRequestTypeUser.$": "$.ProblemTicketKununuRequestTypeUser",
-                "KununuRequestTypeEmployer.$": "$.ProblemTicketKununuRequestTypeEmployer"
+            "action.BulkUpdateIncidentTicket":{
+              "Type":"Action",
+              "ActionName":"zis:{{ticket_custom_field_changed}}:action:bulk_update_incident_ticket",
+              "Comment":"Update Ticket with Problem ticket data.",
+              "Parameters":{
+                "ticket_id.$":"$.input.ticket_event.ticket.id",
+                "problem_ticket_id.$":"$.FetchedProblemTicketID",
+                "BrandProblemTicket.$":"$.ProblemTicketBrand",
+                "XingProduct.$":"$.ProblemTicketXingProduct",
+                "XingOnlyfyOneJobs.$":"$.ProblemTicketXingOnlyfyOneJobs",
+                "XingOnlyfyOneATS.$":"$.ProblemTicketXingOnlyfyOneATS",
+                "XingOTMOTP.$":"$.ProblemTicketXingOTMOTP",
+                "XingEBP.$":"$.ProblemTicketXingEBP",
+                "XingCP.$":"$.ProblemTicketXingCP",
+                "XingStellenanzeigen.$":"$.ProblemTicketXingStellenanzeigen",
+                "XingJobManager.$":"$.ProblemTicketXingJobManager",
+                "KununuRequesterGroup.$":"$.ProblemTicketKununuRequesterGroup",
+                "KununuRequestTypeUser.$":"$.ProblemTicketKununuRequestTypeUser",
+                "KununuRequestTypeEmployer.$":"$.ProblemTicketKununuRequestTypeEmployer"
               },
-              "Next": "succeed.FlowEndIncident"
+              "Next":"succeed.FlowEndIncident",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "wait.threeSeconds1": {
-              "Type": "Wait",
-              "Seconds": 3,
-              "Comment": "Wait 3 seconds before executing the next action.",
-              "Next": "action.BulkUpdateTicket"
+            "wait.threeSeconds1":{
+              "Type":"Wait",
+              "Seconds":3,
+              "Comment":"Wait 3 seconds before executing the next action.",
+              "Next":"action.BulkUpdateTicket"
             },
-            "action.BulkUpdateTicket": {
-              "Type": "Action",
-              "ActionName": "zis:{{ticket_custom_field_changed}}:action:bulk_update_ticket",
-              "Comment": "Update Ticket with Process macro execution Information.",
-              "Parameters": {
-                "ticket_id.$": "$.input.ticket_event.ticket.id"
+            "action.BulkUpdateTicket":{
+              "Type":"Action",
+              "ActionName":"zis:{{ticket_custom_field_changed}}:action:bulk_update_ticket",
+              "Comment":"Update Ticket with Process macro execution Information.",
+              "Parameters":{
+                "ticket_id.$":"$.input.ticket_event.ticket.id"
               },
-              "Next": "succeed.FlowEnd"
+              "Next":"succeed.FlowEnd",
+              "Catch":[
+                {
+                  "ErrorEquals":[
+                    "States.ALL"
+                  ],
+                  "ResultPath":"$.error_Details",
+                  "Next":"action.PostError"
+                }
+              ]
             },
-            "succeed.FlowEndIncident": {
-              "Type": "Succeed",
-              "Comment": "Log",
-              "Message": "✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; The Incident Ticket was synchronized."
+            "action.PostError":{
+              "Type":"Action",
+              "ActionName":"zis:{{ticket_custom_field_changed}}:action:post_error",
+              "Comment":"Post Error to Monitor.",
+              "Next":"fail.HandleError"
             },
-            "succeed.DifferentTicketType": {
-              "Type": "Succeed",
-              "Comment": "Log",
-              "Message": "ℹ️ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Skipped, as it's not an 'Incident' Ticket."
+            "succeed.FlowEndIncident":{
+              "Type":"Succeed",
+              "Comment":"Log",
+              "Message":"✅ - Ticket ID: {{$.ticket_id}}; The Incident Ticket was synchronized."
             },
-            "succeed.FlowEnd": {
-              "Type": "Succeed",
-              "Comment": "Log",
-              "Message": "✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; The workflow has been fully executed."
+            "succeed.DifferentTicketType":{
+              "Type":"Succeed",
+              "Comment":"Log",
+              "Message":"ℹ️ - Ticket ID: {{$.ticket_id}}; Skipped, as it's not an 'Incident' Ticket."
             },
-            "succeed.DifferentTicketField": {
-              "Type": "Succeed",
-              "Comment": "Log",
-              "Message": "ℹ️ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Skipped, as a different Ticket Field has changed."
+            "succeed.FlowEnd":{
+              "Type":"Succeed",
+              "Comment":"Log",
+              "Message":"✅ - Ticket ID: {{$.ticket_id}}; The workflow has been fully executed."
             },
-            "succeed.NoProcessMacro": {
-              "Type": "Succeed",
-              "Comment": "Log",
-              "Message": "✅ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Skipped, as no 'Process macro' was used."
+            "succeed.DifferentTicketField":{
+              "Type":"Succeed",
+              "Comment":"Log",
+              "Message":"ℹ️ - Ticket ID: {{$.ticket_id}}; Skipped, as a different Ticket Field has changed."
             },
-            "fail.EventTypeMissing": {
-              "Type": "Fail",
-              "Comment": "Log",
-              "Error": "Sync Error",
-              "Cause": "❌ - Ticket ID: {{$.input.ticket_event.ticket.id}}; Process macro has no 'Event type'."
+            "succeed.NoProcessMacro":{
+              "Type":"Succeed",
+              "Comment":"Log",
+              "Message":"✅ - Ticket ID: {{$.ticket_id}}; Skipped, as no 'Process macro' was used."
+            },
+            "fail.EventTypeMissing":{
+              "Type":"Fail",
+              "Comment":"Log",
+              "Error":"Sync Error",
+              "Cause":"❌ - Ticket ID: {{$.ticket_id}}; Process macro has no 'Event type'."
+            },
+            "fail.HandleError":{
+              "Type":"Fail",
+              "Error":"ActionExecutionFailed",
+              "Cause":"❌ - Ticket ID: {{$.ticket_id}}; Error in action: {{$.error_Details}}"
             }
           }
         }
       }
     },
-    "action.FetchTicket": {
-      "type": "ZIS::Action::Http",
-      "properties": {
-        "name": "fetch_ticket",
-        "definition": {
-          "method": "GET",
-          "path": "/api/v2/tickets/{{$.ticket_id}}.json",
-          "connectionName": "zendesk"
+    "action.FetchTicket":{
+      "type":"ZIS::Action::Http",
+      "properties":{
+        "name":"fetch_ticket",
+        "definition":{
+          "method":"GET",
+          "path":"/api/v2/tickets/{{$.ticket_id}}.json",
+          "connectionName":"zendesk"
         }
       }
     },
-    "action.ProblemFetchTicket": {
-      "type": "ZIS::Action::Http",
-      "properties": {
-        "name": "fetch_problem_ticket",
-        "definition": {
-          "method": "GET",
-          "path": "/api/v2/tickets/{{$.problem_ticket_id}}.json",
-          "connectionName": "zendesk"
+    "action.ProblemFetchTicket":{
+      "type":"ZIS::Action::Http",
+      "properties":{
+        "name":"fetch_problem_ticket",
+        "definition":{
+          "method":"GET",
+          "path":"/api/v2/tickets/{{$.problem_ticket_id}}.json",
+          "connectionName":"zendesk"
         }
       }
     },
-    "action.BulkUpdateIncidentTicket": {
-      "type": "ZIS::Action::Http",
-      "properties": {
-        "name": "bulk_update_incident_ticket",
-        "definition": {
-          "method": "PUT",
-          "path": "/api/v2/tickets/update_many.json?ids={{$.ticket_id}}",
-          "requestBody": {
-            "ticket": {
-              "brand_id": "{{$.BrandProblemTicket}}",
-              "additional_tags": ["tkt_nt_zis_process_macro_tag", "tkt_cc_problem", "process_done"],
-              "custom_fields": [
+    "action.BulkUpdateIncidentTicket":{
+      "type":"ZIS::Action::Http",
+      "properties":{
+        "name":"bulk_update_incident_ticket",
+        "definition":{
+          "method":"PUT",
+          "path":"/api/v2/tickets/update_many.json?ids={{$.ticket_id}}",
+          "requestBody":{
+            "ticket":{
+              "brand_id":"{{$.BrandProblemTicket}}",
+              "additional_tags":[
+                "tkt_nt_zis_process_macro_tag",
+                "tkt_cc_problem",
+                "process_done"
+              ],
+              "custom_fields":[
                 {
-                  "id": {{problem_ticket_field_id}},
-                  "value": "$.problem_ticket_id"
+                  "id":{{problem_ticket_field_id}},
+                  "value":"$.problem_ticket_id"
                 },
                 {
-                  "id": {{Product}},
-                  "value": "$.XingProduct"
+                  "id":{{Product}},
+                  "value":"$.XingProduct"
                 },
                 {
-                  "id": {{onlyfy one Jobs}},
-                  "value": "$.XingOnlyfyOneJobs"
+                  "id":{{onlyfy one Jobs}},
+                  "value":"$.XingOnlyfyOneJobs"
                 },
                 {
-                  "id": {{onlyfy one ATS}},
-                  "value": "$.XingOnlyfyOneATS"
+                  "id":{{onlyfy one ATS}},
+                  "value":"$.XingOnlyfyOneATS"
                 },
                 {
-                  "id": {{OTM / OTP}},
-                  "value": "$.XingOTMOTP"
+                  "id":{{OTM / OTP}},
+                  "value":"$.XingOTMOTP"
                 },
                 {
-                  "id": {{EBP}},
-                  "value": "$.XingEBP"
+                  "id":{{EBP}},
+                  "value":"$.XingEBP"
                 },
                 {
-                  "id": {{CP}},
-                  "value": "$.XingCP"
+                  "id":{{CP}},
+                  "value":"$.XingCP"
                 },
                 {
-                  "id": {{Stellenanzeigen}},
-                  "value": "$.XingStellenanzeigen"
+                  "id":{{Stellenanzeigen}},
+                  "value":"$.XingStellenanzeigen"
                 },
                 {
-                  "id": {{JobManager}},
-                  "value": "$.XingJobManager"
+                  "id":{{JobManager}},
+                  "value":"$.XingJobManager"
                 },
                 {
-                  "id": {{Requester Group}},
-                  "value": "$.KununuRequesterGroup"
+                  "id":{{Requester Group}},
+                  "value":"$.KununuRequesterGroup"
                 },
                 {
-                  "id": {{Type of Request User}},
-                  "value": "$.KununuRequestTypeUser"
+                  "id":{{Type of Request User}},
+                  "value":"$.KununuRequestTypeUser"
                 },
                 {
-                  "id": {{Type of Request Employer}},
-                  "value": "$.KununuRequestTypeEmployer"
+                  "id":{{Type of Request Employer}},
+                  "value":"$.KununuRequestTypeEmployer"
                 }
               ]
             }
           },
-          "connectionName": "zendesk"
+          "connectionName":"zendesk"
         }
       }
     },
-    "action.BulkUpdateTicket": {
-      "type": "ZIS::Action::Http",
-      "properties": {
-        "name": "bulk_update_ticket",
-        "definition": {
-          "method": "PUT",
-          "path": "/api/v2/tickets/update_many.json?ids={{$.ticket_id}}",
-          "requestBody": {
-            "ticket": {
-              "additional_tags": ["tkt_nt_zis_process_macro_tag"]
+    "action.BulkUpdateTicket":{
+      "type":"ZIS::Action::Http",
+      "properties":{
+        "name":"bulk_update_ticket",
+        "definition":{
+          "method":"PUT",
+          "path":"/api/v2/tickets/update_many.json?ids={{$.ticket_id}}",
+          "requestBody":{
+            "ticket":{
+              "additional_tags":[
+                "tkt_nt_zis_process_macro_tag"
+              ]
             }
           },
-          "connectionName": "zendesk"
+          "connectionName":"zendesk"
         }
       }
     },
-    "action.PostWebhook": {
-      "type": "ZIS::Action::Http",
-      "properties": {
-        "name": "post_webhook",
-        "definition": {
-          "method": "POST",
-          "url": "{{https_endpoint_zis_testing}}",
-          "requestBody": "$.payload"
+    "action.PostError":{
+      "type":"ZIS::Action::Http",
+      "properties":{
+        "name":"post_error",
+        "definition":{
+          "method":"POST",
+          "url":"{{https_endpoint_error_handling}}",
+          "requestBody":{
+            "error":{
+              "platform":"Zendesk Integration Service",
+              "instance":"PRODUCTION",
+              "flowName":"AWS ZIS ticket.CustomFieldChanged",
+              "flowStatus":"failed",
+              "timeStamp":"",
+              "flowLink":""
+            }
+          }
         }
       }
     }
