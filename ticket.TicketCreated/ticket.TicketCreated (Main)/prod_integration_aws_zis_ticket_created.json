@@ -155,7 +155,7 @@
                 "ActionName":"zis:common:transform:Jq",
                 "Comment":"Check if the Requester's Email contains a Domain defined as Spam.",
                 "Parameters":{
-                  "expr":"[.user.email | contains(\"@qq.com\", \"@bccto.cc\", \"@126.com\", \"@tbol.com\", \"@example.com\")] | unique | if index(true)>-1 then true else false end",
+                  "expr": "if .user.email == null then false else [.user.email | contains(\"@qq.com\", \"@bccto.cc\", \"@126.com\", \"@tbol.com\", \"@example.com\")] | unique | if index(true) > -1 then true else false end end",
                   "data.$":"$.fetched_requester"
                 },
                 "ResultPath":"$.SpamRequesterMailPresent",
